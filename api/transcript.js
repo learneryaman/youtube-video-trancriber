@@ -17,17 +17,17 @@ module.exports = async (req, res) => {
   }
 
   try {
-    const { url } = req.query;
+    const { url, id } = req.query;
 
-    if (!url) {
+    if (!url && !id) {
       return res.status(400).json({
-        error: 'Missing URL parameter. Please provide a YouTube URL (e.g. ?url=https://youtube.com/watch?v=...)'
+        error: 'Missing parameter. Please provide a video ID (?id=...) or YouTube URL (?url=...)'
       });
     }
 
-    // Robustly extract the video ID from any YouTube URL format (watch, shorts, live, youtu.be)
+    // Robustly extract the video ID from any YouTube URL format
     function extractVideoId(link) {
-      // If it's already an 11 character ID, just return it
+      if (!link) return null;
       if (link.length === 11 && !link.includes('http')) return link;
       
       const regExp = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?)|(shorts\/)|(live\/))\??v?=?([^#&?]*).*/;
@@ -35,7 +35,8 @@ module.exports = async (req, res) => {
       return (match && match[9].length === 11) ? match[9] : link;
     }
 
-    const videoId = extractVideoId(url);
+    // Use the explicitly provided ID, or try to extract it from the URL
+    const videoId = id || extractVideoId(url);
 
     // Fetch the transcript using just the video ID
     const transcript = await YoutubeTranscript.fetchTranscript(videoId);
