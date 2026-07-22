@@ -25,8 +25,20 @@ module.exports = async (req, res) => {
       });
     }
 
-    // Fetch the transcript
-    const transcript = await YoutubeTranscript.fetchTranscript(url);
+    // Robustly extract the video ID from any YouTube URL format (watch, shorts, live, youtu.be)
+    function extractVideoId(link) {
+      // If it's already an 11 character ID, just return it
+      if (link.length === 11 && !link.includes('http')) return link;
+      
+      const regExp = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?)|(shorts\/)|(live\/))\??v?=?([^#&?]*).*/;
+      const match = link.match(regExp);
+      return (match && match[9].length === 11) ? match[9] : link;
+    }
+
+    const videoId = extractVideoId(url);
+
+    // Fetch the transcript using just the video ID
+    const transcript = await YoutubeTranscript.fetchTranscript(videoId);
 
     // Combine all transcript segments into a single readable string
     const fullText = transcript.map(t => t.text).join(' ');
